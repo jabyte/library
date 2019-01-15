@@ -3,18 +3,10 @@
  */
 package com.crossover.techtrial.model;
 
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
-
-
 /**
  * @author kshah
  *
@@ -22,7 +14,6 @@ import javax.persistence.Table;
 @Entity
 @Table(name="transaction")
 public class Transaction implements Serializable {
-
   /**
    * 
    */
@@ -30,22 +21,25 @@ public class Transaction implements Serializable {
   
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  Long id;
+  private Long id;
   
+  @NotNull
   @OneToOne
   @JoinColumn(name = "book_id", referencedColumnName = "id")
-  Book book;
+  private Book book;
   
+  @NotNull
   @OneToOne
   @JoinColumn(name="member_id", referencedColumnName="id")
-  Member member;
+  private Member member;
+
   //Date and time of issuance of this book
   @Column(name="date_of_issue")
-  LocalDateTime dateOfIssue;
+  private LocalDateTime dateOfIssue;
   
   //Date and time of return of this book
   @Column(name="date_of_return")
-  LocalDateTime dateOfReturn;
+  private LocalDateTime dateOfReturn;
 
   public Long getId() {
     return id;

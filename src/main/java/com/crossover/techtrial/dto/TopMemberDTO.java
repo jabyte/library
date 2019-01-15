@@ -16,10 +16,11 @@ public class TopMemberDTO {
    * @param email
    * @param bookCount
    */
-  public TopMemberDTO(Long memberId,
+  public TopMemberDTO(
+      Long memberId,
       String name, 
       String email, 
-      Integer bookCount) {
+      Long bookCount) {
     this.name = name;
     this.email = email;
     this.memberId = memberId;
@@ -36,7 +37,7 @@ public class TopMemberDTO {
   
   private String email;
   
-  private Integer bookCount;
+  private Long bookCount;
 
   public Long getMemberId() {
     return memberId;
@@ -62,11 +63,11 @@ public class TopMemberDTO {
     this.email = email;
   }
 
-  public Integer getBookCount() {
+  public Long getBookCount() {
     return bookCount;
   }
 
-  public void setBookCount(Integer bookCount) {
+  public void setBookCount(Long bookCount) {
     this.bookCount = bookCount;
   }
 }

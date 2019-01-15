@@ -3,8 +3,9 @@
  */
 package com.crossover.techtrial.service;
 
-import java.util.List;
 import com.crossover.techtrial.model.Member;
+
+import java.util.List;
 
 /**
  * RideService for rides.
@@ -13,10 +14,13 @@ import com.crossover.techtrial.model.Member;
  */
 public interface MemberService {
   
-  public Member save(Member member);
+  Member save(Member member);
   
-  public Member findById(Long memberId);
-  
-  public List<Member> findAll();
-  
+  Member findById(Long memberId);
+
+  Member findByEmail(String memberEmail);
+
+  List<Member> findAll();
+
+    void delete(Long id);
 }

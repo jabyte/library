@@ -3,8 +3,9 @@
  */
 package com.crossover.techtrial.service;
 
-import java.util.List;
 import com.crossover.techtrial.model.Book;
+
+import java.util.List;
 
 /**
  * BookService interface for Books.
@@ -13,10 +14,11 @@ import com.crossover.techtrial.model.Book;
  */
 public interface BookService {
   
-  public List<Book> getAll();
+  List<Book> getAll();
   
-  public Book save(Book p);
+  Book save(Book p);
   
-  public Book findById(Long bookId);
-  
+  Book findById(Long bookId);
+
+  void delete(Long id);
 }
