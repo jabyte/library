@@ -1,0 +1,1714 @@
+From 358093ac73b76f525215d4167dc784642fd03733 Mon Sep 17 00:00:00 2001
+From: "Jabir S. Minjibir" <jabir.minjibir@gmail.com>
+Date: Tue, 15 Jan 2019 09:59:10 +0100
+Subject: [PATCH] My submission
+XOV: XO_0_0_1
+
+---
+ Readme.md                                     |  15 +-
+ build.gradle                                  |   3 +-
+ .../techtrial/controller/BookController.java  |  73 +++---
+ .../controller/MemberController.java          | 146 ++++++------
+ .../controller/TransactionController.java     | 134 +++++++----
+ .../crossover/techtrial/dto/TopMemberDTO.java |  11 +-
+ .../com/crossover/techtrial/model/Member.java | 224 +++++++++---------
+ .../techtrial/model/Transaction.java          |  26 +-
+ .../repositories/BookRepository.java          |   1 -
+ .../repositories/MemberRepository.java        |   8 +-
+ .../techtrial/service/BookService.java        |  12 +-
+ .../techtrial/service/BookServiceImpl.java    |  68 +++---
+ .../techtrial/service/MemberService.java      |  16 +-
+ .../techtrial/service/MemberServiceImpl.java  |  61 +++--
+ .../techtrial/service/TransactionService.java |  16 ++
+ .../service/TransactionServiceImpl.java       |  45 ++++
+ src/main/main.iml                             |  11 +
+ src/main/resources/application.properties     |   4 +-
+ .../controller/BookControllerTest.java        |  82 +++++++
+ .../controller/MemberControllerTest.java      | 207 ++++++++++++----
+ .../controller/TransactionControllerTest.java | 116 +++++++++
+ src/test/test.iml                             |  12 +
+ 22 files changed, 889 insertions(+), 402 deletions(-)
+ create mode 100644 src/main/java/com/crossover/techtrial/service/TransactionService.java
+ create mode 100644 src/main/java/com/crossover/techtrial/service/TransactionServiceImpl.java
+ create mode 100644 src/main/main.iml
+ create mode 100644 src/test/java/com/crossover/techtrial/controller/BookControllerTest.java
+ create mode 100644 src/test/java/com/crossover/techtrial/controller/TransactionControllerTest.java
+ create mode 100644 src/test/test.iml
+
+diff --git a/Readme.md b/Readme.md
+index 7266375..9857b23 100644
+--- a/Readme.md
++++ b/Readme.md
+@@ -6,18 +6,27 @@ Cross-Library is a web application for a local community library and is develope
+ # Notes
+ 
+ * Each member should have a valid unique email address. No two members can have the same email address.
++
+ * Member is not allowed to issue a book which is already issued to someone and should return HTTP Status code 403.
++
+ * Member trying to issue a book which does not exist in our database, API should return HTTP Status code 404.
++
+ * After returning the book and completing the transaction by updating date of return, Any subsequent request to return for the same transaction-id should return HTTP Status Code 403. Valid value of Date Of Return field means books are returned.
++
+ * When issuing a book to a member, the application should update  date of issuance and on return, dateOfReturn should be recorded automatically
++
+ * Frontend application is out of our scope. It is a separate, fully-functioning application handled by another team, so we do not want to modify API signatures.
+ 
+ # Tasks
+ 
+ * Increase unit test coverage to reach 60%, achieving more than 60% will only consume your valuable time without an extra score.
++
+ * Cross-Library APIs are developed by the inexperienced developer and contains functional/logical bugs and lacks implementation for many important requirements mentioned above. You need to find those issues and fix them.
++
+ * Implement a new API which returns top 5 members who completed the maximum number of transactions(issued/returned books) within the given duration. Completed transaction means that date of issuance and date of return are within the search range. API should return member name, a number of books issued/returned in this duration. Signature of API is already defined in code and pagination is not needed.
++
+ * Implement another new feature where API should reject issuance of more than 5 books at a given time. If a member already has 5 books issued on his name, and try to issue another API should return HTTP Status code 403.
++
+ * Implement validation on name field in member table to allow names with the length of 2 to 100 and should always start with an alphabet. Please do not add validations on all other fields.
+ 
+ We'll be evaluating your submission from the following perspectives:
+@@ -25,7 +34,7 @@ We'll be evaluating your submission from the following perspectives:
+ * Implementation of new features
+ * Bug fixes
+ * Unit Tests
+-    
++
+ Prerequisites: Any IDE(e.g Eclipse), Gradle , GIT, Java 8, MySQL 5.6+
+ 
+ # Development Environment:
+@@ -33,7 +42,7 @@ Prerequisites: Any IDE(e.g Eclipse), Gradle , GIT, Java 8, MySQL 5.6+
+ Cross-Library applications require MySQL database to store its data. Make sure to update application.properties with spring.datasource.URL(change hostname only), spring.datasource.username, and  spring.datasource.password. You are free to choose MySQL service in a cloud or installed on the local machine or MySQL docker container.
+ 
+ The Cross-Library application uses liquibase for Database changes. In case you need to update the Database, please create a new changeset file in resources/db.changelog folder and include the newly created file in db.changelog-master.xml
+-    For more details on liquibase follow https://www.liquibase.org/documentation/changeset.html 
++    For more details on liquibase follow https://www.liquibase.org/documentation/changeset.html
+ Cross-Library Application:
+     To start the application run CrossLibraryApplication.java main method from your IDE.
+ 
+@@ -43,4 +52,4 @@ This is how we are going to run and evaluate your submission, so please make sur
+ * Make sure to run unit tests, check code coverage, ensure the application is compiling and all dependencies are included.
+ * Commit everything using (git add --all && git commit -m "My submission")
+ * Create patch file with name without spaces 'cross-library-java_<YourNameHere>.patch', using the specified tag as the starting point (git format-patch initial-commit --stdout > cross-library-java_<yournamehere>.patch)
+-* Store your file in a shared location where Crossover team can access and download it for evaluation. and add your sharable link in the answer field of this question.
+\ No newline at end of file
++* Store your file in a shared location where Crossover team can access and download it for evaluation. and add your sharable link in the answer field of this question.
+diff --git a/build.gradle b/build.gradle
+index 2d73af5..41351c8 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -42,6 +42,7 @@ dependencies {
+ 	testCompile('org.springframework.boot:spring-boot-starter-aop')
+ 	testCompile('org.springframework.boot:spring-boot-starter-test')
+ 	testCompile('org.mockito:mockito-core:2.7.22')
+-	
++	testCompile('org.apache.httpcomponents:httpclient:4.5.5')
++
+ }
+ 
+diff --git a/src/main/java/com/crossover/techtrial/controller/BookController.java b/src/main/java/com/crossover/techtrial/controller/BookController.java
+index a171514..08de8ff 100644
+--- a/src/main/java/com/crossover/techtrial/controller/BookController.java
++++ b/src/main/java/com/crossover/techtrial/controller/BookController.java
+@@ -1,19 +1,16 @@
+ /**
+- * 
++ *
+  */
+ package com.crossover.techtrial.controller;
+ 
+-import java.util.List;
+-import org.springframework.beans.factory.annotation.Autowired;
+-import org.springframework.http.ResponseEntity;
+-import org.springframework.web.bind.annotation.GetMapping;
+-import org.springframework.web.bind.annotation.PathVariable;
+-import org.springframework.web.bind.annotation.PostMapping;
+-import org.springframework.web.bind.annotation.RequestBody;
+-import org.springframework.web.bind.annotation.RestController;
+ import com.crossover.techtrial.model.Book;
+ import com.crossover.techtrial.service.BookService;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.http.HttpStatus;
++import org.springframework.http.ResponseEntity;
++import org.springframework.web.bind.annotation.*;
+ 
++import java.util.List;
+ /**
+  * BookController for Book related APIs.
+  * @author crossover
+@@ -21,36 +18,34 @@ import com.crossover.techtrial.service.BookService;
+  */
+ @RestController
+ public class BookController {
+-  
+-  @Autowired 
+-  private BookService bookService;
+-  
+-  /*
+-   * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
+-   */
+-  @GetMapping(path ="/api/book")
+-  public ResponseEntity<List<Book>> getBooks() {
+-    return ResponseEntity.ok(bookService.getAll());
+-  }
+ 
+-  /*
+-   * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
+-   */
+-  @PostMapping(path ="/api/book")
+-  public ResponseEntity<Book> saveBook(@RequestBody Book book) {
+-    return ResponseEntity.ok(bookService.save(book));
+-  }
+-  
+-  /*
+-   * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
+-   */
+-  @GetMapping(path = "/api/book/{book-id}")
+-  public ResponseEntity<Book> getRideById(@PathVariable(name="book-id",required=true)Long bookId){
+-    Book book = bookService.findById(bookId);
+-    if (book!=null)
+-      return ResponseEntity.ok(book);
+-    return ResponseEntity.notFound().build();
+-  }
++    @Autowired
++    private BookService bookService;
++    /*
++     * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
++     */
++    @GetMapping(path = "/api/book")
++    public ResponseEntity<List<Book>> getBooks() {
++        return ResponseEntity.ok(bookService.getAll());
++    }
++    /*
++     * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
++     */
++    @PostMapping(path = "/api/book")
++    public ResponseEntity<Book> saveBook(@RequestBody Book book) {
++        bookService.save(book);
++        return ResponseEntity.status(HttpStatus.CREATED).body(book);
++    }
++    /*
++     * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
++     */
++    @GetMapping(path = "/api/book/{book-id}")
++    public ResponseEntity<Book> getBookById(@PathVariable(name = "book-id", required = true) Long bookId) {
++        Book book = bookService.findById(bookId);
++        if (book != null) {
++            return ResponseEntity.ok(book);
++        }
+ 
+-  
++        return ResponseEntity.notFound().build();
++    }
+ }
+diff --git a/src/main/java/com/crossover/techtrial/controller/MemberController.java b/src/main/java/com/crossover/techtrial/controller/MemberController.java
+index 7f613ce..d529547 100644
+--- a/src/main/java/com/crossover/techtrial/controller/MemberController.java
++++ b/src/main/java/com/crossover/techtrial/controller/MemberController.java
+@@ -1,83 +1,97 @@
+ /**
+- * 
++ *
+  */
+ package com.crossover.techtrial.controller;
+ 
+-import java.time.LocalDateTime;
+-import java.util.ArrayList;
+-import java.util.List;
+-import org.springframework.beans.factory.annotation.Autowired;
+-import org.springframework.format.annotation.DateTimeFormat;
+-import org.springframework.http.ResponseEntity;
+-import org.springframework.web.bind.annotation.GetMapping;
+-import org.springframework.web.bind.annotation.PathVariable;
+-import org.springframework.web.bind.annotation.PostMapping;
+-import org.springframework.web.bind.annotation.RequestBody;
+-import org.springframework.web.bind.annotation.RequestParam;
+-import org.springframework.web.bind.annotation.RestController;
+ import com.crossover.techtrial.dto.TopMemberDTO;
+ import com.crossover.techtrial.model.Member;
+ import com.crossover.techtrial.service.MemberService;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.format.annotation.DateTimeFormat;
++import org.springframework.http.HttpStatus;
++import org.springframework.http.ResponseEntity;
++import org.springframework.web.bind.annotation.*;
+ 
++import javax.persistence.EntityManager;
++import javax.persistence.TypedQuery;
++import java.time.LocalDateTime;
++import java.util.ArrayList;
++import java.util.List;
+ /**
+- * 
++ *
+  * @author crossover
+  */
+-
+ @RestController
+ public class MemberController {
+-  
+-  @Autowired
+-  MemberService memberService;
+-  /*
+-   * PLEASE DO NOT CHANGE SIGNATURE OR METHOD TYPE OF END POINTS
+-   */
+-  @PostMapping(path = "/api/member")
+-  public ResponseEntity<Member> register(@RequestBody Member p) {
+-    return ResponseEntity.ok(memberService.save(p));
+-  }
+-  
+-  /*
+-   * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
+-   */
+-  @GetMapping(path = "/api/member")
+-  public ResponseEntity<List<Member>> getAll() {
+-    return ResponseEntity.ok(memberService.findAll());
+-  }
+-  
+-  /*
+-   * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
+-   */
+-  @GetMapping(path = "/api/member/{member-id}")
+-  public ResponseEntity<Member> getMemberById(@PathVariable(name="member-id", required=true)Long memberId) {
+-    Member member = memberService.findById(memberId);
+-    if (member != null) {
+-      return ResponseEntity.ok(member);
++
++    @Autowired
++    private MemberService memberService;
++
++    @Autowired
++    private EntityManager entityManager;
++    /*
++     * PLEASE DO NOT CHANGE SIGNATURE OR METHOD TYPE OF END POINTS
++     */
++    @PostMapping(path = "/api/member")
++    public ResponseEntity<Member> register(@RequestBody Member p) {
++        Member member = memberService.findByEmail(p.getEmail());
++
++        if (member == null) {
++            return ResponseEntity.ok(memberService.save(p));
++        }
++
++        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
++    }
++    /*
++     * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
++     */
++    @GetMapping(path = "/api/member")
++    public ResponseEntity<List<Member>> getAll() {
++        return ResponseEntity.ok(memberService.findAll());
++    }
++
++    /*
++     * PLEASE DO NOT CHANGE API SIGNATURE OR METHOD TYPE OF END POINTS
++     */
++    @GetMapping(path = "/api/member/{member-id}")
++    public ResponseEntity<Member> getMemberById(@PathVariable(name = "member-id", required = true) Long memberId) {
++        Member member = memberService.findById(memberId);
++        if (member != null) {
++            return ResponseEntity.ok(member);
++        }
++        return ResponseEntity.notFound().build();
+     }
+-    return ResponseEntity.notFound().build();
+-  }
+-  
+-  
+-  /**
+-   * This API returns the top 5 members who issued the most books within the search duration. 
+-   * Only books that have dateOfIssue and dateOfReturn within the mentioned duration should be counted.
+-   * Any issued book where dateOfIssue or dateOfReturn is outside the search, should not be considered. 
+-   * 
+-   * DONT CHANGE METHOD SIGNATURE AND RETURN TYPES
+-   * @return
+-   */
+-  @GetMapping(path = "/api/member/top-member")
+-  public ResponseEntity<List<TopMemberDTO>> getTopMembers(
+-      @RequestParam(value="startTime", required=true) @DateTimeFormat(pattern="yyyy-MM-dd'T'HH:mm:ss") LocalDateTime startTime,
+-      @RequestParam(value="endTime", required=true) @DateTimeFormat(pattern="yyyy-MM-dd'T'HH:mm:ss") LocalDateTime endTime){
+-    List<TopMemberDTO> topDrivers = new ArrayList<>();
++
+     /**
+-     * Your Implementation Here. 
+-     * 
++     * This API returns the top 5 members who issued the most books within the search duration. Only
++     * books that have dateOfIssue and dateOfReturn within the mentioned duration should be counted.
++     * Any issued book where dateOfIssue or dateOfReturn is outside the search, should not be
++     * considered.
++     *
++     * DONT CHANGE METHOD SIGNATURE AND RETURN TYPES
++     *
++     * @return
+      */
+-    
+-    return ResponseEntity.ok(topDrivers);
+-    
+-  }
+-  
++    @GetMapping(path = "/api/member/top-member")
++    public ResponseEntity<List<TopMemberDTO>> getTopMembers(
++            @RequestParam(value = "startTime", required = true) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime startTime,
++            @RequestParam(value = "endTime", required = true) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime endTime) {
++        List<TopMemberDTO> topDrivers = new ArrayList<>();
++        /**
++         * Your Implementation Here.
++         *
++         */
++        String stringQuery = "SELECT NEW com.crossover.techtrial.dto.TopMemberDTO(m.id, m.name, m.email, COUNT(t.member.id) AS bookCount) FROM Member m, Transaction t WHERE m.id = t.member.id AND t.dateOfIssue BETWEEN :startTime AND :endTime AND t.dateOfReturn BETWEEN :startTime AND :endTime GROUP BY m.id ORDER BY bookCount DESC";
++
++        TypedQuery<TopMemberDTO> typedQuery = entityManager
++                .createQuery(stringQuery, TopMemberDTO.class)
++                .setParameter("startTime", startTime)
++                .setParameter("endTime", endTime)
++                .setMaxResults(5);
++
++        topDrivers = typedQuery.getResultList();
++
++        return ResponseEntity.ok(topDrivers);
++    }
++
+ }
+diff --git a/src/main/java/com/crossover/techtrial/controller/TransactionController.java b/src/main/java/com/crossover/techtrial/controller/TransactionController.java
+index 83f41b8..b861329 100644
+--- a/src/main/java/com/crossover/techtrial/controller/TransactionController.java
++++ b/src/main/java/com/crossover/techtrial/controller/TransactionController.java
+@@ -1,21 +1,23 @@
+ /**
+- * 
++ *
+  */
+ package com.crossover.techtrial.controller;
+ 
+-import java.time.LocalDateTime;
+-import java.util.Map;
++import com.crossover.techtrial.model.Book;
++import com.crossover.techtrial.model.Member;
++import com.crossover.techtrial.model.Transaction;
++import com.crossover.techtrial.service.BookService;
++import com.crossover.techtrial.service.MemberService;
++import com.crossover.techtrial.service.TransactionService;
+ import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.http.HttpStatus;
+ import org.springframework.http.ResponseEntity;
+-import org.springframework.web.bind.annotation.PatchMapping;
+-import org.springframework.web.bind.annotation.PathVariable;
+-import org.springframework.web.bind.annotation.PostMapping;
+-import org.springframework.web.bind.annotation.RequestBody;
+-import org.springframework.web.bind.annotation.RestController;
+-import com.crossover.techtrial.model.Transaction;
+-import com.crossover.techtrial.repositories.BookRepository;
+-import com.crossover.techtrial.repositories.MemberRepository;
+-import com.crossover.techtrial.repositories.TransactionRepository;
++import org.springframework.web.bind.annotation.*;
++
++import javax.persistence.EntityManager;
++import java.time.LocalDateTime;
++import java.util.Map;
++import java.util.Optional;
+ 
+ /**
+  * @author kshah
+@@ -23,35 +25,83 @@ import com.crossover.techtrial.repositories.TransactionRepository;
+  */
+ @RestController
+ public class TransactionController {
+-  
+-  @Autowired TransactionRepository transactionRepository;
+-  
+-  @Autowired BookRepository bookRepository;
+-  
+-  @Autowired MemberRepository memberRepository;
+-  /*
+-   * PLEASE DO NOT CHANGE SIGNATURE OR METHOD TYPE OF END POINTS
+-   * Example Post Request :  { "bookId":1,"memberId":33 }
+-   */
+-  @PostMapping(path = "/api/transaction")
+-  public ResponseEntity<Transaction> issueBookToMember(@RequestBody Map<String, Long> params){
+-    
+-    Long bookId = params.get("bookId");
+-    Long memberId = params.get("memberId");
+-    Transaction transaction = new Transaction();
+-    transaction.setBook(bookRepository.findById(bookId).orElse(null));
+-    transaction.setMember(memberRepository.findById(memberId).get());
+-    transaction.setDateOfIssue(LocalDateTime.now());    
+-    return ResponseEntity.ok().body(transactionRepository.save(transaction));
+-  }
+-  /*
+-   * PLEASE DO NOT CHANGE SIGNATURE OR METHOD TYPE OF END POINTS
+-   */
+-  @PatchMapping(path= "/api/transaction/{transaction-id}/return")
+-  public ResponseEntity<Transaction> returnBookTransaction(@PathVariable(name="transaction-id") Long transactionId){
+-    Transaction transaction = transactionRepository.findById(transactionId).get();
+-    transaction.setDateOfReturn(LocalDateTime.now());
+-    return ResponseEntity.ok().body(transaction);
+-  }
++
++    @Autowired
++    private TransactionService transactionService;
++
++    @Autowired
++    private BookService bookService;
++
++    @Autowired
++    private MemberService memberService;
++
++    @Autowired
++    private EntityManager entityManager;
++
++    /*
++     * PLEASE DO NOT CHANGE SIGNATURE OR METHOD TYPE OF END POINTS Example Post
++     * Request : { "bookId":1,"memberId":33 }
++     */
++    @PostMapping(path = "/api/transaction")
++    public ResponseEntity<Transaction> issueBookToMember(@RequestBody Map<String, Long> params) {
++
++        Long bookId = params.get("bookId");
++        Long memberId = params.get("memberId");
++
++        Book book = bookService.findById(bookId);
++        Member member = memberService.findById(memberId);
++
++        if (member != null && book != null) {
++
++            int unreturndedBooksCount = entityManager
++                    .createQuery("SELECT t FROM Transaction t WHERE t.member.id = :memberId AND t.dateOfReturn IS NULL")
++                    .setParameter("memberId", member.getId()).getResultList().size();
++
++            int bookIssuedCount = entityManager
++                    .createQuery("SELECT t FROM Transaction t WHERE t.book.id = :bookId AND dateOfReturn IS NULL")
++                    .setParameter("bookId", book.getId()).getResultList().size();
++
++            if (unreturndedBooksCount < 5 && bookIssuedCount < 1) {
++                Transaction transaction = new Transaction();
++
++                transaction.setBook(bookService.findById(bookId));
++                transaction.setMember(memberService.findById(memberId));
++                transaction.setDateOfIssue(LocalDateTime.now());
++
++                Transaction t = transactionService.save(transaction);
++
++                return ResponseEntity.ok().body(t);
++            }
++
++            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
++        }
++
++        return ResponseEntity.notFound().build();
++    }
++    /*
++     * PLEASE DO NOT CHANGE SIGNATURE OR METHOD TYPE OF END POINTS
++     */
++    @PatchMapping(path = "/api/transaction/{transaction-id}/return")
++    public ResponseEntity<Transaction> returnBookTransaction(
++            @PathVariable(name = "transaction-id") Long transactionId) {
++
++        Optional<Transaction> optionalTransaction = transactionService.findById(transactionId);
++
++        if (optionalTransaction.isPresent()) {
++
++            Transaction transaction = optionalTransaction.get();
++
++            if (transaction.getDateOfReturn() == null) {
++                transaction.setDateOfReturn(LocalDateTime.now());
++                transactionService.save(transaction);
++                return ResponseEntity.ok(transaction);
++            }
++            else {
++                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(transaction);
++            }
++        }
++
++        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
++    }
+ 
+ }
+diff --git a/src/main/java/com/crossover/techtrial/dto/TopMemberDTO.java b/src/main/java/com/crossover/techtrial/dto/TopMemberDTO.java
+index dd80ffd..5ebf909 100644
+--- a/src/main/java/com/crossover/techtrial/dto/TopMemberDTO.java
++++ b/src/main/java/com/crossover/techtrial/dto/TopMemberDTO.java
+@@ -16,10 +16,11 @@ public class TopMemberDTO {
+    * @param email
+    * @param bookCount
+    */
+-  public TopMemberDTO(Long memberId,
++  public TopMemberDTO(
++      Long memberId,
+       String name, 
+       String email, 
+-      Integer bookCount) {
++      Long bookCount) {
+     this.name = name;
+     this.email = email;
+     this.memberId = memberId;
+@@ -36,7 +37,7 @@ public class TopMemberDTO {
+   
+   private String email;
+   
+-  private Integer bookCount;
++  private Long bookCount;
+ 
+   public Long getMemberId() {
+     return memberId;
+@@ -62,11 +63,11 @@ public class TopMemberDTO {
+     this.email = email;
+   }
+ 
+-  public Integer getBookCount() {
++  public Long getBookCount() {
+     return bookCount;
+   }
+ 
+-  public void setBookCount(Integer bookCount) {
++  public void setBookCount(Long bookCount) {
+     this.bookCount = bookCount;
+   }
+ }
+diff --git a/src/main/java/com/crossover/techtrial/model/Member.java b/src/main/java/com/crossover/techtrial/model/Member.java
+index 99cfb29..eac82e8 100644
+--- a/src/main/java/com/crossover/techtrial/model/Member.java
++++ b/src/main/java/com/crossover/techtrial/model/Member.java
+@@ -1,5 +1,5 @@
+ /**
+- * 
++ *
+  */
+ package com.crossover.techtrial.model;
+ 
+@@ -13,6 +13,10 @@ import javax.persistence.GeneratedValue;
+ import javax.persistence.GenerationType;
+ import javax.persistence.Id;
+ import javax.persistence.Table;
++import javax.validation.constraints.Email;
++import javax.validation.constraints.NotNull;
++import javax.validation.constraints.Pattern;
++import javax.validation.constraints.Size;
+ 
+ /**
+  * @author kshah
+@@ -20,109 +24,117 @@ import javax.persistence.Table;
+  */
+ @Entity
+ @Table(name = "member")
+-public class Member implements Serializable{
+-  
+-  private static final long serialVersionUID = 9045098179799205444L;
+-  
+-  @Id
+-  @GeneratedValue(strategy = GenerationType.IDENTITY)
+-  Long id;
+-
+-  @Column(name = "name")
+-  String name;
+-
+-  @Column(name = "email")
+-  String email;
+-  
+-  @Enumerated(EnumType.STRING)
+-  MembershipStatus membershipStatus;
+-  
+-  @Column(name = "membership_start_date")
+-  LocalDateTime membershipStartDate;
+-
+-  public Long getId() {
+-    return id;
+-  }
+-
+-  public void setId(Long id) {
+-    this.id = id;
+-  }
+-
+-  public String getName() {
+-    return name;
+-  }
+-
+-  public void setName(String name) {
+-    this.name = name;
+-  }
+-
+-  public String getEmail() {
+-    return email;
+-  }
+-
+-  public void setEmail(String email) {
+-    this.email = email;
+-  }
+-
+-  public MembershipStatus getMembershipStatus() {
+-    return membershipStatus;
+-  }
+-
+-  public void setMembershipStatus(MembershipStatus membershipStatus) {
+-    this.membershipStatus = membershipStatus;
+-  }
+-
+-  public LocalDateTime getMembershipStartDate() {
+-    return membershipStartDate;
+-  }
+-
+-  public void setMembershipStartDate(LocalDateTime membershipStartDate) {
+-    this.membershipStartDate = membershipStartDate;
+-  }
+-
+-  @Override
+-  public int hashCode() {
+-    final int prime = 31;
+-    int result = 1;
+-    result = prime * result + ((email == null) ? 0 : email.hashCode());
+-    result = prime * result + ((id == null) ? 0 : id.hashCode());
+-    result = prime * result + ((name == null) ? 0 : name.hashCode());
+-    return result;
+-  }
+-
+-  @Override
+-  public boolean equals(Object obj) {
+-    if (this == obj)
+-      return true;
+-    if (obj == null)
+-      return false;
+-    if (getClass() != obj.getClass())
+-      return false;
+-    Member other = (Member) obj;
+-    if (email == null) {
+-      if (other.email != null)
+-        return false;
+-    } else if (!email.equals(other.email))
+-      return false;
+-    if (id == null) {
+-      if (other.id != null)
+-        return false;
+-    } else if (!id.equals(other.id))
+-      return false;
+-    if (name == null) {
+-      if (other.name != null)
+-        return false;
+-    } else if (!name.equals(other.name))
+-      return false;
+-    return true;
+-  }
+-
+-  @Override
+-  public String toString() {
+-    return "Member [id=" + id + ", name=" + name + ", email=" + email + "]";
+-  }
+-  
+-  
+-  
+-
++public class Member implements Serializable {
++	private static final long serialVersionUID = 9045098179799205444L;
++
++	@Id
++	@GeneratedValue(strategy = GenerationType.IDENTITY)
++	Long id;
++
++	@Column(name = "name", nullable = false)
++	@Size(min = 2, max = 100, message = "Name must between 2 and 100 characters long.")
++	@Pattern(regexp = "^[a-zA-Z]{1}+[a-zA-Z0-9]*", message = "Name must start with an alphabet.")
++	String name;
++
++	@NotNull
++	@Email
++	@Column(name = "email", unique = true, nullable = false)
++	String email;
++
++	@Enumerated(EnumType.STRING)
++	MembershipStatus membershipStatus;
++
++	@Column(name = "membership_start_date")
++	LocalDateTime membershipStartDate;
++
++	public Long getId() {
++		return id;
++	}
++
++	public void setId(Long id) {
++		this.id = id;
++	}
++
++	public String getName() {
++		return name;
++	}
++
++	public void setName(String name) {
++		this.name = name;
++	}
++
++	public String getEmail() {
++		return email;
++	}
++
++	public void setEmail(String email) {
++		this.email = email;
++	}
++
++	public MembershipStatus getMembershipStatus() {
++		return membershipStatus;
++	}
++
++	public void setMembershipStatus(MembershipStatus membershipStatus) {
++		this.membershipStatus = membershipStatus;
++	}
++
++	public LocalDateTime getMembershipStartDate() {
++		return membershipStartDate;
++	}
++
++	public void setMembershipStartDate(LocalDateTime membershipStartDate) {
++		this.membershipStartDate = membershipStartDate;
++	}
++
++	@Override
++	public int hashCode() {
++		final int prime = 31;
++		int result = 1;
++		result = prime * result + ((email == null) ? 0 : email.hashCode());
++		result = prime * result + ((id == null) ? 0 : id.hashCode());
++		result = prime * result + ((name == null) ? 0 : name.hashCode());
++		return result;
++	}
++
++	@Override
++	public boolean equals(Object obj) {
++		if (this == obj) {
++			return true;
++		}
++		if (obj == null) {
++			return false;
++		}
++		if (getClass() != obj.getClass()) {
++			return false;
++		}
++		Member other = (Member) obj;
++		if (email == null) {
++			if (other.email != null) {
++				return false;
++			}
++		} else if (!email.equals(other.email)) {
++			return false;
++		}
++		if (id == null) {
++			if (other.id != null) {
++				return false;
++			}
++		} else if (!id.equals(other.id)) {
++			return false;
++		}
++		if (name == null) {
++			if (other.name != null) {
++				return false;
++			}
++		} else if (!name.equals(other.name)) {
++			return false;
++		}
++		return true;
++	}
++
++	@Override
++	public String toString() {
++		return "Member [id=" + id + ", name=" + name + ", email=" + email + "]";
++	}
+ }
+diff --git a/src/main/java/com/crossover/techtrial/model/Transaction.java b/src/main/java/com/crossover/techtrial/model/Transaction.java
+index 4a9a262..be201db 100644
+--- a/src/main/java/com/crossover/techtrial/model/Transaction.java
++++ b/src/main/java/com/crossover/techtrial/model/Transaction.java
+@@ -3,18 +3,10 @@
+  */
+ package com.crossover.techtrial.model;
+ 
++import javax.persistence.*;
++import javax.validation.constraints.NotNull;
+ import java.io.Serializable;
+ import java.time.LocalDateTime;
+-import javax.persistence.Column;
+-import javax.persistence.Entity;
+-import javax.persistence.GeneratedValue;
+-import javax.persistence.GenerationType;
+-import javax.persistence.Id;
+-import javax.persistence.JoinColumn;
+-import javax.persistence.OneToOne;
+-import javax.persistence.Table;
+-
+-
+ /**
+  * @author kshah
+  *
+@@ -22,7 +14,6 @@ import javax.persistence.Table;
+ @Entity
+ @Table(name="transaction")
+ public class Transaction implements Serializable {
+-
+   /**
+    * 
+    */
+@@ -30,22 +21,25 @@ public class Transaction implements Serializable {
+   
+   @Id
+   @GeneratedValue(strategy = GenerationType.IDENTITY)
+-  Long id;
++  private Long id;
+   
++  @NotNull
+   @OneToOne
+   @JoinColumn(name = "book_id", referencedColumnName = "id")
+-  Book book;
++  private Book book;
+   
++  @NotNull
+   @OneToOne
+   @JoinColumn(name="member_id", referencedColumnName="id")
+-  Member member;
++  private Member member;
++
+   //Date and time of issuance of this book
+   @Column(name="date_of_issue")
+-  LocalDateTime dateOfIssue;
++  private LocalDateTime dateOfIssue;
+   
+   //Date and time of return of this book
+   @Column(name="date_of_return")
+-  LocalDateTime dateOfReturn;
++  private LocalDateTime dateOfReturn;
+ 
+   public Long getId() {
+     return id;
+diff --git a/src/main/java/com/crossover/techtrial/repositories/BookRepository.java b/src/main/java/com/crossover/techtrial/repositories/BookRepository.java
+index 0366c26..4cf3978 100644
+--- a/src/main/java/com/crossover/techtrial/repositories/BookRepository.java
++++ b/src/main/java/com/crossover/techtrial/repositories/BookRepository.java
+@@ -13,5 +13,4 @@ import org.springframework.data.rest.core.annotation.RestResource;
+  */
+ @RestResource(exported = false)
+ public interface BookRepository extends CrudRepository<Book, Long> {
+-
+ }
+diff --git a/src/main/java/com/crossover/techtrial/repositories/MemberRepository.java b/src/main/java/com/crossover/techtrial/repositories/MemberRepository.java
+index 303d98a..a251845 100644
+--- a/src/main/java/com/crossover/techtrial/repositories/MemberRepository.java
++++ b/src/main/java/com/crossover/techtrial/repositories/MemberRepository.java
+@@ -3,11 +3,12 @@
+  */
+ package com.crossover.techtrial.repositories;
+ 
+-import java.util.List;
+-import java.util.Optional;
++import com.crossover.techtrial.model.Member;
+ import org.springframework.data.repository.PagingAndSortingRepository;
+ import org.springframework.data.rest.core.annotation.RestResource;
+-import com.crossover.techtrial.model.Member;
++
++import java.util.List;
++import java.util.Optional;
+ 
+ /**
+  * Person repository for basic operations on Person entity.
+@@ -16,5 +17,6 @@ import com.crossover.techtrial.model.Member;
+ @RestResource(exported=false)
+ public interface MemberRepository extends PagingAndSortingRepository<Member, Long> {
+   Optional<Member> findById(Long id);
++  Optional<Member> findByEmail(String email);
+   List<Member> findAll();
+ }
+diff --git a/src/main/java/com/crossover/techtrial/service/BookService.java b/src/main/java/com/crossover/techtrial/service/BookService.java
+index 00dbba7..7d77395 100644
+--- a/src/main/java/com/crossover/techtrial/service/BookService.java
++++ b/src/main/java/com/crossover/techtrial/service/BookService.java
+@@ -3,9 +3,10 @@
+  */
+ package com.crossover.techtrial.service;
+ 
+-import java.util.List;
+ import com.crossover.techtrial.model.Book;
+ 
++import java.util.List;
++
+ /**
+  * BookService interface for Books.
+  * @author cossover
+@@ -13,10 +14,11 @@ import com.crossover.techtrial.model.Book;
+  */
+ public interface BookService {
+   
+-  public List<Book> getAll();
++  List<Book> getAll();
+   
+-  public Book save(Book p);
+-  
+-  public Book findById(Long bookId);
++  Book save(Book p);
+   
++  Book findById(Long bookId);
++
++  void delete(Long id);
+ }
+diff --git a/src/main/java/com/crossover/techtrial/service/BookServiceImpl.java b/src/main/java/com/crossover/techtrial/service/BookServiceImpl.java
+index a8422db..f35e951 100644
+--- a/src/main/java/com/crossover/techtrial/service/BookServiceImpl.java
++++ b/src/main/java/com/crossover/techtrial/service/BookServiceImpl.java
+@@ -1,46 +1,52 @@
+ /**
+- * 
++ *
+  */
+ package com.crossover.techtrial.service;
+ 
++import com.crossover.techtrial.model.Book;
++import com.crossover.techtrial.repositories.BookRepository;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.stereotype.Service;
++
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Optional;
+-import org.springframework.beans.factory.annotation.Autowired;
+-import org.springframework.stereotype.Service;
+-import com.crossover.techtrial.model.Book;
+-import com.crossover.techtrial.repositories.BookRepository;
+-import com.crossover.techtrial.repositories.TransactionRepository;
+ 
+ /**
+  * @author crossover
+  *
+  */
+ @Service
+-public class BookServiceImpl implements BookService{
+-
+-  @Autowired
+-  BookRepository bookRepository;
+-  
+-  @Autowired
+-  TransactionRepository transactionRepository;
+-  
+-  @Override
+-  public List<Book> getAll() {
+-    List<Book> personList = new ArrayList<>();
+-    bookRepository.findAll().forEach(personList::add);
+-    return personList;
+-    
+-  }
+-  
+-  public Book save(Book p) {
+-    return bookRepository.save(p);
+-  }
+-
+-  @Override
+-  public Book findById(Long bookId) {
+-    Optional<Book> dbPerson = bookRepository.findById(bookId);
+-    return dbPerson.orElse(null);
+-  }
++public class BookServiceImpl implements BookService {
++
++    private final BookRepository bookRepository;
++
++    @Autowired
++    public BookServiceImpl(BookRepository bookRepository) {
++        this.bookRepository = bookRepository;
++    }
++
++    @Override
++    public List<Book> getAll() {
++        List<Book> personList = new ArrayList<>();
++        bookRepository.findAll().forEach(personList::add);
++        return personList;
++    }
++
++    public Book save(Book p) {
++        bookRepository.save(p);
++        return p;
++    }
++
++    @Override
++    public Book findById(Long bookId) {
++        Optional<Book> dbPerson = bookRepository.findById(bookId);
++        return dbPerson.orElse(null);
++    }
++
++    @Override
++    public void delete(Long id) {
++        bookRepository.deleteById(id);
++    }
+ 
+ }
+diff --git a/src/main/java/com/crossover/techtrial/service/MemberService.java b/src/main/java/com/crossover/techtrial/service/MemberService.java
+index a4fe6ce..7703ac3 100644
+--- a/src/main/java/com/crossover/techtrial/service/MemberService.java
++++ b/src/main/java/com/crossover/techtrial/service/MemberService.java
+@@ -3,9 +3,10 @@
+  */
+ package com.crossover.techtrial.service;
+ 
+-import java.util.List;
+ import com.crossover.techtrial.model.Member;
+ 
++import java.util.List;
++
+ /**
+  * RideService for rides.
+  * @author crossover
+@@ -13,10 +14,13 @@ import com.crossover.techtrial.model.Member;
+  */
+ public interface MemberService {
+   
+-  public Member save(Member member);
+-  
+-  public Member findById(Long memberId);
+-  
+-  public List<Member> findAll();
++  Member save(Member member);
+   
++  Member findById(Long memberId);
++
++  Member findByEmail(String memberEmail);
++
++  List<Member> findAll();
++
++    void delete(Long id);
+ }
+diff --git a/src/main/java/com/crossover/techtrial/service/MemberServiceImpl.java b/src/main/java/com/crossover/techtrial/service/MemberServiceImpl.java
+index 5fbf1a1..18800a4 100644
+--- a/src/main/java/com/crossover/techtrial/service/MemberServiceImpl.java
++++ b/src/main/java/com/crossover/techtrial/service/MemberServiceImpl.java
+@@ -1,38 +1,51 @@
+ /**
+- * 
++ *
+  */
+ package com.crossover.techtrial.service;
+ 
+-import java.util.List;
+-import java.util.Optional;
+-import org.springframework.beans.factory.annotation.Autowired;
+-import org.springframework.stereotype.Service;
+ import com.crossover.techtrial.model.Member;
+ import com.crossover.techtrial.repositories.MemberRepository;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.stereotype.Service;
++
++import java.util.List;
++import java.util.Optional;
+ 
+ /**
+  * @author crossover
+  *
+  */
+ @Service
+-public class MemberServiceImpl implements MemberService{
+-
+-  @Autowired
+-  MemberRepository memberRepository;
+-  
+-  public Member save(Member member) {
+-    return memberRepository.save(member);
+-  }
+-  
+-  public Member findById(Long memberId) {
+-    Optional<Member> optionalMember = memberRepository.findById(memberId);
+-    if (optionalMember.isPresent()) {
+-      return optionalMember.get();
+-    }else return null;
+-  }
+-  
+-  public List<Member> findAll() {
+-    return memberRepository.findAll();
+-  }
++public class MemberServiceImpl implements MemberService {
++
++    private final MemberRepository memberRepository;
++
++    @Autowired
++    public MemberServiceImpl(MemberRepository memberRepository) {
++        this.memberRepository = memberRepository;
++    }
++
++    public Member save(Member member) {
++        return memberRepository.save(member);
++    }
++
++    public Member findById(Long memberId) {
++        Optional<Member> optionalMember = memberRepository.findById(memberId);
++        return optionalMember.orElse(null);
++    }
++
++    public Member findByEmail(String memberEmail) {
++        Optional<Member> optionalMember = memberRepository.findByEmail(memberEmail);
++        return optionalMember.orElse(null);
++    }
++
++    public List<Member> findAll() {
++        return memberRepository.findAll();
++    }
++
++    @Override
++    public void delete(Long id) {
++        memberRepository.deleteById(id);
++    }
+ 
+ }
+diff --git a/src/main/java/com/crossover/techtrial/service/TransactionService.java b/src/main/java/com/crossover/techtrial/service/TransactionService.java
+new file mode 100644
+index 0000000..2f28702
+--- /dev/null
++++ b/src/main/java/com/crossover/techtrial/service/TransactionService.java
+@@ -0,0 +1,16 @@
++package com.crossover.techtrial.service;
++
++import com.crossover.techtrial.model.Transaction;
++
++import java.util.List;
++import java.util.Optional;
++
++public interface TransactionService {
++    Transaction save(Transaction transaction);
++
++    Optional<Transaction> findById(Long transactionId);
++
++    List<Transaction> getAll();
++
++    void delete(Long id);
++}
+diff --git a/src/main/java/com/crossover/techtrial/service/TransactionServiceImpl.java b/src/main/java/com/crossover/techtrial/service/TransactionServiceImpl.java
+new file mode 100644
+index 0000000..2fec41c
+--- /dev/null
++++ b/src/main/java/com/crossover/techtrial/service/TransactionServiceImpl.java
+@@ -0,0 +1,45 @@
++package com.crossover.techtrial.service;
++
++import com.crossover.techtrial.model.Transaction;
++import com.crossover.techtrial.repositories.TransactionRepository;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.stereotype.Service;
++
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Optional;
++
++@Service
++public class TransactionServiceImpl implements TransactionService {
++
++    private final TransactionRepository transactionRepository;
++
++    @Autowired
++    public TransactionServiceImpl(TransactionRepository transactionRepository) {
++        this.transactionRepository = transactionRepository;
++    }
++
++    @Override
++    public Transaction save(Transaction transaction) {
++        return this.transactionRepository.save(transaction);
++    }
++
++    @Override
++    public Optional<Transaction> findById(Long transactionId) {
++        return transactionRepository.findById(transactionId);
++    }
++
++    @Override
++    public List<Transaction> getAll() {
++        List<Transaction> transactionList = new ArrayList<>();
++
++        transactionRepository.findAll().forEach(transactionList::add);
++
++        return transactionList;
++    }
++
++    @Override
++    public void delete(Long id) {
++        this.transactionRepository.deleteById(id);
++    }
++}
+diff --git a/src/main/main.iml b/src/main/main.iml
+new file mode 100644
+index 0000000..908ad4f
+--- /dev/null
++++ b/src/main/main.iml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="JAVA_MODULE" version="4">
++  <component name="NewModuleRootManager" inherit-compiler-output="true">
++    <exclude-output />
++    <content url="file://$MODULE_DIR$">
++      <sourceFolder url="file://$MODULE_DIR$/java" isTestSource="false" />
++    </content>
++    <orderEntry type="inheritedJdk" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++</module>
+\ No newline at end of file
+diff --git a/src/main/resources/application.properties b/src/main/resources/application.properties
+index bddee0f..f52ae9a 100644
+--- a/src/main/resources/application.properties
++++ b/src/main/resources/application.properties
+@@ -1,7 +1,7 @@
+ #Database connection Parameters
+ spring.datasource.url: jdbc:mysql://localhost:3306/crosslibrary?createDatabaseIfNotExist=true&useSSL=false
+-spring.datasource.username=root
+-spring.datasource.password=
++spring.datasource.username=jabyte
++spring.datasource.password=password
+ spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+ 
+ spring.jpa.hibernate.ddl-auto=none
+diff --git a/src/test/java/com/crossover/techtrial/controller/BookControllerTest.java b/src/test/java/com/crossover/techtrial/controller/BookControllerTest.java
+new file mode 100644
+index 0000000..4a8c201
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/controller/BookControllerTest.java
+@@ -0,0 +1,82 @@
++package com.crossover.techtrial.controller;
++
++import com.crossover.techtrial.model.Book;
++import com.crossover.techtrial.service.BookService;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.test.context.SpringBootTest;
++import org.springframework.boot.test.web.client.TestRestTemplate;
++import org.springframework.http.*;
++import org.springframework.test.context.junit4.SpringRunner;
++
++import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
++import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.assertNotNull;
++import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
++
++@RunWith(SpringRunner.class)
++@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
++public class BookControllerTest {
++
++    @Autowired
++    private BookService bookService;
++
++    @Autowired
++    private TestRestTemplate testRestTemplate;
++
++    @Test
++    public void getBooksTest() {
++        Book b1, b2;
++        b1 = new Book();
++        b2 = new Book();
++
++        b1.setTitle("Scala Basics");
++        b2.setTitle("Scala Basics");
++
++        bookService.save(b1);
++        bookService.save(b2);
++
++        ResponseEntity<Object> responseEntity = testRestTemplate.getForEntity("/api/book", Object.class);
++
++        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
++        assertThat(responseEntity.getBody()).isNotNull();
++
++        bookService.delete(b1.getId());
++        bookService.delete(b2.getId());
++    }
++
++    @Test
++    public void saveBookTest() {
++        HttpEntity<Object> book = getHttpEntity("{\"title\": \"Unit Testing with Spring-Boot\"}");
++
++        ResponseEntity<Book> responseEntity = testRestTemplate.postForEntity("/api/book", book, Book.class);
++
++        assertEquals(201, responseEntity.getStatusCodeValue());
++        assertEquals("Unit Testing with Spring-Boot", responseEntity.getBody().getTitle());
++        assertNotNull(responseEntity.getBody().getId());
++
++        bookService.delete(responseEntity.getBody().getId());
++    }
++
++    @Test
++    public void getBookByIdTest() {
++        Book book = new Book();
++        book.setTitle("Scala Basics");
++        bookService.save(book);
++
++        ResponseEntity<Book> responseEntity = testRestTemplate.getForEntity("/api/book/" + book.getId(), Book.class);
++
++        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
++        assertEquals(book.getId(), responseEntity.getBody().getId());
++        assertEquals(book.getTitle(), responseEntity.getBody().getTitle());
++
++        bookService.delete(book.getId());
++    }
++
++    private HttpEntity<Object> getHttpEntity(Object object) {
++        HttpHeaders headers = new HttpHeaders();
++        headers.setContentType(MediaType.APPLICATION_JSON);
++        return new HttpEntity<Object>(object, headers);
++    }
++}
+diff --git a/src/test/java/com/crossover/techtrial/controller/MemberControllerTest.java b/src/test/java/com/crossover/techtrial/controller/MemberControllerTest.java
+index 0368a7e..e21eb1a 100644
+--- a/src/test/java/com/crossover/techtrial/controller/MemberControllerTest.java
++++ b/src/test/java/com/crossover/techtrial/controller/MemberControllerTest.java
+@@ -1,71 +1,174 @@
+ /**
+- * 
++ *
+  */
+ package com.crossover.techtrial.controller;
+ 
+-import org.junit.Assert;
+-import org.junit.Before;
++import com.crossover.techtrial.model.Book;
++import com.crossover.techtrial.model.Member;
++import com.crossover.techtrial.model.MembershipStatus;
++import com.crossover.techtrial.model.Transaction;
++import com.crossover.techtrial.repositories.MemberRepository;
++import com.crossover.techtrial.service.BookService;
++import com.crossover.techtrial.service.TransactionService;
+ import org.junit.Test;
+ import org.junit.runner.RunWith;
+-import org.mockito.Mock;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.boot.test.context.SpringBootTest;
+ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+ import org.springframework.boot.test.web.client.TestRestTemplate;
+-import org.springframework.http.HttpEntity;
+-import org.springframework.http.HttpHeaders;
+-import org.springframework.http.MediaType;
+-import org.springframework.http.ResponseEntity;
+-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+-import org.springframework.test.web.servlet.MockMvc;
+-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+-import com.crossover.techtrial.model.Member;
+-import com.crossover.techtrial.repositories.MemberRepository;
++import org.springframework.http.*;
++import org.springframework.test.context.junit4.SpringRunner;
++
++import java.time.LocalDateTime;
++import java.util.ArrayList;
++import java.util.List;
++
++import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
++import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.assertNotNull;
+ 
+ /**
+  * @author kshah
+  *
+  */
+-@RunWith(SpringJUnit4ClassRunner.class)
++@RunWith(SpringRunner.class)
+ @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+ public class MemberControllerTest {
+-  
+-  MockMvc mockMvc;
+-  
+-  @Mock
+-  private MemberController memberController;
+-  
+-  @Autowired
+-  private TestRestTemplate template;
+-  
+-  @Autowired
+-  MemberRepository memberRepository;
+-  
+-  @Before
+-  public void setup() throws Exception {
+-    mockMvc = MockMvcBuilders.standaloneSetup(memberController).build();
+-  }
+-  
+-  @Test
+-  public void testMemberRegsitrationsuccessful() throws Exception {
+-    HttpEntity<Object> member = getHttpEntity(
+-        "{\"name\": \"test 1\", \"email\": \"test10000000000001@gmail.com\"," 
+-            + " \"membershipStatus\": \"ACTIVE\",\"membershipStartDate\":\"2018-08-08T12:12:12\" }");
+-    
+-    ResponseEntity<Member> response = template.postForEntity(
+-        "/api/member", member, Member.class);
+-    
+-    Assert.assertEquals("test 1", response.getBody().getName());
+-    Assert.assertEquals(200,response.getStatusCode().value());
+-    
+-    //cleanup the user
+-    memberRepository.deleteById(response.getBody().getId());
+-  }
+-
+-  private HttpEntity<Object> getHttpEntity(Object body) {
+-    HttpHeaders headers = new HttpHeaders();
+-    headers.setContentType(MediaType.APPLICATION_JSON);
+-    return new HttpEntity<Object>(body, headers);
+-  }
+ 
++    @Autowired
++    private TestRestTemplate template;
++
++    @Autowired
++    private MemberRepository memberRepository;
++
++    @Autowired
++    private TransactionService transactionService;
++
++    @Autowired
++    private BookService bookService;
++
++    @Test
++    public void testMemberRegsitrationsuccessful() {
++
++        memberRepository.deleteAll();
++
++        HttpEntity<Object> member = getHttpEntity(
++                "{\"name\": \"Jabir\", \"email\": \"sminjibir@gmail.com\","
++                        + " \"membershipStatus\": \"ACTIVE\",\"membershipStartDate\":\"2018-08-08T12:12:12\" }");
++
++        ResponseEntity<Member> response = template.postForEntity("/api/member", member, Member.class);
++
++        assertEquals(200, response.getStatusCode().value());
++        assertEquals("Jabir", response.getBody().getName());
++
++        //cleanup the user
++        memberRepository.deleteById(response.getBody().getId());
++    }
++
++    @Test
++    public void testGetMemberById() {
++        Member m1 = new Member();
++        m1.setName("Utah");
++        m1.setEmail("utajazz@naija.ng");
++        m1.setMembershipStatus(MembershipStatus.ACTIVE);
++        m1.setMembershipStartDate(LocalDateTime.of(2018, 8, 8, 12, 12, 12));
++        memberRepository.save(m1);
++
++        ResponseEntity<Member> responseEntity = template.getForEntity("/api/member/" + m1.getId(), Member.class);
++
++        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
++        assertEquals(m1.getId(), responseEntity.getBody().getId());
++        assertEquals("utajazz@naija.ng", responseEntity.getBody().getEmail());
++
++        // Tidy database up
++        memberRepository.delete(m1);
++    }
++
++    @Test
++    public void testGetAll() {
++
++        memberRepository.deleteAll();
++
++        Member m1 = new Member();
++        m1.setName("Utah");
++        m1.setEmail("utajazz@naija.ng");
++        m1.setMembershipStatus(MembershipStatus.ACTIVE);
++        m1.setMembershipStartDate(LocalDateTime.of(2018, 8, 8, 12, 12, 12));
++        memberRepository.save(m1);
++
++        Member m2 = new Member();
++        m2.setName("Jabir");
++        m2.setEmail("minjibir@gmail.com");
++        m2.setMembershipStatus(MembershipStatus.ACTIVE);
++        m2.setMembershipStartDate(LocalDateTime.of(2018, 10, 1, 0, 0, 0));
++        memberRepository.save(m2);
++
++        ResponseEntity responseEntity = template.getForEntity("/api/member", Object.class);
++
++        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
++        assertThat(responseEntity.getBody()).isNotNull();
++
++        // Tidy database up
++        memberRepository.deleteAll();
++    }
++
++    @Test
++    public void testGetTopMembers() {
++
++        memberRepository.deleteAll();
++        transactionService.getAll();
++        bookService.getAll();
++
++        Member m1 = new Member();
++        m1.setName("Utah");
++        m1.setEmail("utajazz@naija.ng");
++        m1.setMembershipStatus(MembershipStatus.ACTIVE);
++        m1.setMembershipStartDate(LocalDateTime.of(2018, 8, 8, 12, 12, 12));
++        memberRepository.save(m1);
++
++        Member m2 = new Member();
++        m2.setName("Jabir");
++        m2.setEmail("minjibir@gmail.com");
++        m2.setMembershipStatus(MembershipStatus.ACTIVE);
++        m2.setMembershipStartDate(LocalDateTime.of(2018, 10, 1, 0, 0, 0));
++        memberRepository.save(m2);
++
++        Book b1 = new Book();
++        b1.setTitle("Java for Dummies");
++        bookService.save(b1);
++
++        Book b2 = new Book();
++        b2.setTitle("Beginning Spring Boot");
++        bookService.save(b2);
++
++        Transaction t1 = new Transaction();
++        t1.setMember(m1);
++        t1.setBook(b1);
++        t1.setDateOfIssue(LocalDateTime.now());
++        t1.setDateOfReturn(LocalDateTime.of(2019, 5, 30, 0, 0, 0));
++        transactionService.save(t1);
++
++        Transaction t2 = new Transaction();
++        t2.setMember(m2);
++        t2.setBook(b2);
++        t2.setDateOfIssue(LocalDateTime.now());
++        t2.setDateOfReturn(LocalDateTime.of(2019, 3, 10, 0, 0, 0));
++        transactionService.save(t2);
++
++        ResponseEntity responseEntity = template.getForEntity("/api/member/top-member?startTime=2018-01-01T00:00:00&endTime=2019-12-31T00:00:00", Object.class);
++
++        List<Member> members = (ArrayList) responseEntity.getBody();
++
++        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
++        assertNotNull(members);
++        assertThat(members.size()).isGreaterThan(0);
++        // Tidy database up
++        memberRepository.deleteAll();
++    }
++
++    private HttpEntity<Object> getHttpEntity(Object body) {
++        HttpHeaders headers = new HttpHeaders();
++        headers.setContentType(MediaType.APPLICATION_JSON);
++        return new HttpEntity<Object>(body, headers);
++    }
+ }
+diff --git a/src/test/java/com/crossover/techtrial/controller/TransactionControllerTest.java b/src/test/java/com/crossover/techtrial/controller/TransactionControllerTest.java
+new file mode 100644
+index 0000000..2912cfd
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/controller/TransactionControllerTest.java
+@@ -0,0 +1,116 @@
++package com.crossover.techtrial.controller;
++
++import com.crossover.techtrial.model.Book;
++import com.crossover.techtrial.model.Member;
++import com.crossover.techtrial.model.MembershipStatus;
++import com.crossover.techtrial.model.Transaction;
++import com.crossover.techtrial.service.BookService;
++import com.crossover.techtrial.service.MemberService;
++import com.crossover.techtrial.service.TransactionService;
++import org.apache.http.client.methods.HttpPatch;
++import org.apache.http.impl.client.HttpClientBuilder;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.test.context.SpringBootTest;
++import org.springframework.boot.test.web.client.TestRestTemplate;
++import org.springframework.boot.web.server.LocalServerPort;
++import org.springframework.http.*;
++import org.springframework.test.context.junit4.SpringRunner;
++
++import java.io.IOException;
++import java.time.LocalDateTime;
++
++import static org.junit.Assert.assertEquals;
++
++@RunWith(SpringRunner.class)
++@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
++public class TransactionControllerTest {
++
++    @LocalServerPort
++    Long port;
++
++    @Autowired
++    BookService bookService;
++
++    @Autowired
++    MemberService memberService;
++
++    @Autowired
++    private TransactionService transactionService;
++
++    @Autowired
++    TestRestTemplate testRestTemplate;
++
++    @Test
++    public void issueBookToMemberTest() {
++        Book book = new Book();
++        book.setTitle("Spring-Boot Applications");
++        bookService.save(book);
++
++        Member member = new Member();
++        member.setName("Jabir");
++        member.setEmail("sminjibir@gmail.com");
++        member.setMembershipStatus(MembershipStatus.ACTIVE);
++        member.setMembershipStartDate(LocalDateTime.of(2019, 1, 1, 0, 0, 0));
++        memberService.save(member);
++
++        HttpEntity<Object> tranxJson =
++                getHttpEntity("{\"bookId\":" + book.getId() + ", \"memberId\":" + member.getId() + "}");
++
++        ResponseEntity<Transaction> responseEntity = testRestTemplate
++                .postForEntity("/api/transaction", tranxJson, Transaction.class);
++
++        assertEquals(200, responseEntity.getStatusCodeValue());
++        assertEquals(book.getTitle(), responseEntity.getBody().getBook().getTitle());
++        assertEquals(member.getName(), responseEntity.getBody().getMember().getName());
++
++        transactionService.delete(responseEntity.getBody().getId());
++        memberService.delete(member.getId());
++        bookService.delete(book.getId());
++    }
++
++    @Test
++    public void returnBookTransactionTest() throws IOException {
++
++        Book book = new Book();
++        book.setTitle("Spring-Boot Applications");
++        bookService.save(book);
++
++        Member member = new Member();
++        member.setName("Jabir");
++        member.setEmail("sminjibir@gmail.com");
++        member.setMembershipStatus(MembershipStatus.ACTIVE);
++        member.setMembershipStartDate(LocalDateTime.of(2019, 1, 1, 0, 0, 0));
++        memberService.save(member);
++
++        Transaction transaction = new Transaction();
++        transaction.setDateOfIssue(LocalDateTime.of(2018, 12, 1, 0, 0, 0));
++        transaction.setMember(member);
++        transaction.setBook(book);
++        transactionService.save(transaction);
++
++        String url = "http://localhost:" + port + "/api/transaction/" + transaction.getId() + "/return";
++
++        HttpPatch httpPatch = new HttpPatch(url);
++        httpPatch.setHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE);
++
++        int respnseCode = HttpClientBuilder.create()
++                .build()
++                .execute(httpPatch)
++                .getStatusLine()
++                .getStatusCode();
++
++        assertEquals(200, respnseCode);
++
++        transactionService.delete(transaction.getId());
++        memberService.delete(member.getId());
++        bookService.delete(book.getId());
++    }
++
++    private HttpEntity<Object> getHttpEntity(Object object) {
++        HttpHeaders headers = new HttpHeaders();
++        headers.setContentType(MediaType.APPLICATION_JSON);
++        return new HttpEntity<Object>(object, headers);
++    }
++}
+diff --git a/src/test/test.iml b/src/test/test.iml
+new file mode 100644
+index 0000000..5ebc6f4
+--- /dev/null
++++ b/src/test/test.iml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="JAVA_MODULE" version="4">
++  <component name="NewModuleRootManager" inherit-compiler-output="true">
++    <exclude-output />
++    <content url="file://$MODULE_DIR$">
++      <sourceFolder url="file://$MODULE_DIR$/java" isTestSource="true" />
++    </content>
++    <orderEntry type="inheritedJdk" />
++    <orderEntry type="sourceFolder" forTests="false" />
++    <orderEntry type="module" module-name="main" />
++  </component>
++</module>
+\ No newline at end of file
+-- 
+2.17.1
+
